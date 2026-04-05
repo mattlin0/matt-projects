@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://apis.google.com https://accounts.google.com https://cdnjs.cloudflare.com; connect-src https://www.googleapis.com https://script.google.com https://accounts.google.com; style-src 'unsafe-inline'; img-src 'self' data: https:; frame-src https://accounts.google.com;">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Matt Team 專案管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#f0efe9;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#a0a09a;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --r:8px;--rl:10px;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-text:#185FA5;
+  --amber:#EF9F27;--amber-bg:#FAEEDA;--amber-text:#854F0B;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-text:#A32D2D;
+  --green:#639922;--green-bg:#EAF3DE;--green-text:#3B6D11;
+  --gray-bg:#F1EFE8;--gray-text:#5F5E5A;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem;min-width:0}
+.topbar{display:flex;align-items:center;gap:8px;margin-bottom:.9rem;flex-wrap:wrap}
+.topbar h1{font-size:16px;font-weight:600;color:var(--text);margin-right:2px}
+.save-indicator{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);transition:background .3s}
+.save-dot.saving{background:var(--amber);animation:pulse .6s infinite}
+.save-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn{font-size:12px;padding:5px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;transition:.12s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:var(--bg2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn.pri:hover{opacity:.8}
+.btn.sm{font-size:11px;padding:3px 8px}
+.btn.undo-btn{font-size:12px;padding:5px 10px;display:flex;align-items:center;gap:4px}
+.frow{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:.75rem}
+.flabel{font-size:10px;color:var(--text3);white-space:nowrap}
+.fc{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;transition:.12s;white-space:nowrap}
+.fc:hover{background:var(--bg2)}
+.fc.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.search{padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);width:160px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--blue)}
+.sumbar{display:flex;gap:14px;margin-bottom:.9rem;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:var(--r)}
+.si{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.sd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.twrap{border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:980px;table-layout:auto;display:table}
+thead{display:table-header-group}
+tbody{display:table-row-group}
+tr{display:table-row}
+td,th{display:table-cell}
+thead tr{background:var(--bg2)}
+th{font-size:10px;font-weight:600;color:var(--text3);padding:8px 9px;text-align:left;letter-spacing:.04em;border-bottom:0.5px solid var(--border);white-space:nowrap}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{color:var(--text)}
+.cat-tr td{background:var(--bg3);padding:5px 10px;border-bottom:0.5px solid var(--border);border-top:0.5px solid var(--border);display:table-cell!important}
+.cat-label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;user-select:none}
+.cat-badge{font-size:10px;font-weight:400;color:var(--text3);background:var(--bg);padding:1px 6px;border-radius:20px}
+.dtr{border-bottom:0.5px solid var(--border);transition:background .08s;display:table-row!important}
+.dtr:last-child{border-bottom:none}
+.dtr:hover{background:var(--bg2)}
+.dtr.dragging{opacity:.35}
+.dtr.drag-over td:first-child{box-shadow:inset 0 2px 0 var(--blue)}
+.sub-tr{border-bottom:0.5px solid var(--border);background:var(--bg2);display:table-row!important}
+.sub-tr:hover{filter:brightness(.97)}
+.sub-tr:hover .dh{opacity:1!important}
+.sub-tr.sub-drag-over td:first-child{box-shadow:inset 0 2px 0 var(--blue)}
+td{padding:0;vertical-align:top;word-break:break-word;display:table-cell!important}
+td:focus-within{outline:1.5px solid var(--blue);outline-offset:-1px}
+.cell{padding:7px 9px;min-height:36px;display:flex;align-items:flex-start;min-width:0}
+.ci{width:100%;border:none;background:transparent;font-size:13px;color:var(--text);font-family:inherit;outline:none;resize:none;line-height:1.5;padding:0}
+.ci::placeholder{color:var(--text3)}
+.sci{width:100%;border:none;background:transparent;font-size:12px;color:var(--text2);font-family:inherit;outline:none;resize:none;line-height:1.5;padding:0}
+.sci::placeholder{color:var(--text3)}
+.ssel{border:none;background:transparent;font-size:11px;font-weight:500;cursor:pointer;outline:none;padding:4px 8px;border-radius:20px;font-family:inherit;-webkit-appearance:none;appearance:none;text-align:center;min-width:76px}
+.s-in-progress{background:var(--blue-bg);color:var(--blue-text)}
+.s-at-risk{background:var(--amber-bg);color:var(--amber-text)}
+.s-urgent{background:var(--red-bg);color:var(--red-text)}
+.s-pending{background:var(--gray-bg);color:var(--gray-text)}
+.s-done{background:var(--green-bg);color:var(--green-text)}
+.s-deferred{background:#EEEDFE;color:#3C3489}
+.dh{cursor:grab;color:var(--text3);font-size:12px;padding:8px 4px 8px 9px;display:flex;align-items:center;opacity:0;user-select:none}
+.dtr:hover .dh{opacity:1}
+.dh:active{cursor:grabbing}
+.exp{width:16px;height:16px;border-radius:3px;border:0.5px solid var(--border2);background:var(--bg);cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.12s;color:var(--text2);margin-top:1px;margin-right:3px}
+.exp:hover{background:var(--bg3)}
+.del{width:22px;height:22px;border-radius:4px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;color:var(--text3);display:flex;align-items:center;justify-content:center;opacity:1;transition:.12s;flex-shrink:0}
+.del:hover{background:var(--red-bg);color:var(--red-text);border-color:#F7C1C1}
+.add-sub-btn{font-size:10px;color:var(--text3);cursor:pointer;padding:4px 9px 5px 34px;background:none;border:none;font-family:inherit;display:flex;align-items:center;gap:3px;width:100%}
+.add-sub-btn:hover{color:var(--text);background:var(--bg3)}
+.cbar{width:3px;min-height:34px;display:block;flex-shrink:0}
+/* Undo toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;transition:all .25s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* Setup banner */
+input[type="date"]{font-family:inherit;cursor:pointer}
+input[type="date"]::-webkit-calendar-picker-indicator{opacity:.5;cursor:pointer}
+
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+#login-screen.hidden{display:none}
+.login-card{background:var(--bg);border:0.5px solid var(--border2);border-radius:16px;padding:2.5rem 2rem;width:min(360px,90vw);text-align:center}
+.login-card h2{font-size:18px;font-weight:600;color:var(--text);margin-bottom:.4rem}
+.login-card p{font-size:13px;color:var(--text3);margin-bottom:1.75rem;line-height:1.6}
+.login-card .logo{font-size:28px;margin-bottom:1rem}
+.login-err{font-size:12px;color:var(--red-text);background:var(--red-bg);padding:8px 12px;border-radius:var(--r);margin-top:1rem;display:none}
+.login-err.show{display:block}
+.g-signin-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 16px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:.12s}
+.g-signin-btn:hover{background:var(--bg2)}
+.g-signin-btn svg{flex-shrink:0}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Force table layout - override any external CSS */
+body table{display:table!important}
+body table thead{display:table-header-group!important}
+body table tbody{display:table-row-group!important}
+body table tr,body table .dtr,body table .sub-tr,body table .cat-tr{display:table-row!important}
+body table td,body table th{display:table-cell!important;vertical-align:top}
+</style>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo">📋</div>
+    <h2>Matt Team 專案管理</h2>
+    <p>請使用授權的 Google 帳號登入</p>
+    <button class="g-signin-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+      使用 Google 帳號登入
+    </button>
+    <div class="login-err" id="login-err">此帳號無存取權限，請使用授權帳號登入</div>
+  </div>
+</div>
+<div id="sync-guide" style="background:#EAF3DE;border-bottom:0.5px solid #C0DD97;padding:7px 1.5rem;font-size:12px;color:#3B6D11;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <span>💡 換電腦流程：點「☁ 備份到 Drive」→ 新電腦開啟後點「☁ 從 Drive 匯入」即可同步</span>
+  <span style="margin-left:auto;cursor:pointer;opacity:.6" onclick="this.parentElement.style.display='none';localStorage.setItem('hide_guide','1')">✕</span>
+</div>
+<div class="container">
+
+  <div class="topbar">
+    <h1>Matt Team 專案管理</h1>
+    <span id="datedisp" style="font-size:11px;color:var(--text3)"></span>
+    <div class="save-indicator">
+      <div class="save-dot" id="savedot"></div>
+      <span id="savetxt">已儲存</span>
+    </div>
+    <!-- Undo / Redo -->
+    <button class="btn undo-btn" id="undo-btn" onclick="undo()" disabled title="復原 (Ctrl+Z)">↩ 復原</button>
+    <button class="btn undo-btn" id="redo-btn" onclick="redo()" disabled title="重做 (Ctrl+Y)">↪ 重做</button>
+    <button class="btn pri" onclick="openAddProject()">＋ 新增專案</button>
+    <button class="btn" onclick="openCatMgr()">⊞ 分類管理</button>
+    <button class="btn" onclick="driveSave()" title="備份到 Google Drive">☁ 備份到 Drive</button>
+    <button class="btn" onclick="driveLoad()" title="從 Google Drive 匯入">☁ 從 Drive 匯入</button>
+  </div>
+
+  <div class="frow">
+    <span class="flabel">分類：</span>
+    <div class="fc on" onclick="setF(this,'cat','全部')">全部</div>
+    <span id="frow-cats" style="display:contents">
+    <div class="fc" onclick="setF(this,'cat','內容產出')">內容產出</div>
+    <div class="fc" onclick="setF(this,'cat','品牌經營')">品牌經營</div>
+    <div class="fc" onclick="setF(this,'cat','客戶執行')">客戶執行</div>
+    <div class="fc" onclick="setF(this,'cat','比稿提案')">比稿提案</div>
+    <div class="fc" onclick="setF(this,'cat','報告交付')">報告交付</div>
+    <div class="fc" onclick="setF(this,'cat','內部')">內部</div>
+    </span>
+    <span class="flabel" style="margin-left:8px">狀態：</span>
+    <div class="fc" onclick="setF(this,'status','urgent')">🔴 緊急</div>
+    <div class="fc" onclick="setF(this,'status','at-risk')">🟡 有風險</div>
+    <div class="fc" onclick="setF(this,'status','pending')">⚪ 待確認</div>
+    <div class="fc" onclick="setF(this,'status','deferred')">🔵 暫時延後</div>
+    <span class="flabel" style="margin-left:8px">搜尋：</span>
+    <input class="search" placeholder="名稱 / 負責人..." oninput="doSearch(this.value)">
+  </div>
+
+  <div class="sumbar" id="sumbar"></div>
+
+  <div class="twrap">
+    <table>
+      <thead><tr>
+        <th style="width:28px"></th>
+        <th style="width:4px;padding:0"></th>
+        <th class="sort" onclick="sortBy('name')" style="min-width:140px">專案 / 子項目 <span id="sort-name"></span></th>
+        <th class="sort" onclick="sortBy('status')" style="width:90px">狀態 <span id="sort-status"></span></th>
+        <th class="sort" onclick="sortBy('due')" style="width:92px">截止日 <span id="sort-due"></span></th>
+        <th style="width:95px">負責人</th>
+        <th style="width:80px">預算</th>
+        <th style="min-width:190px">下一步</th>
+        <th style="min-width:140px">備註</th>
+        <th style="width:36px">刪除</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- Category Manager Modal -->
+<div id="cat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:12px;padding:1.25rem;width:min(420px,92vw);max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.15)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span style="font-size:15px;font-weight:600;color:var(--text)">分類管理</span>
+      <button onclick="closeCatMgr()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3);line-height:1">×</button>
+    </div>
+    <div id="cat-list-edit" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="new-cat-name" placeholder="新分類名稱" style="flex:1;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">
+      <input id="new-cat-color" type="color" value="#888780" style="width:36px;height:32px;border:0.5px solid var(--border2);border-radius:var(--r);cursor:pointer;padding:2px">
+      <button class="btn pri" onclick="addCat()">新增</button>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text3)">刪除分類不會刪除該分類下的專案，專案會移至「未分類」</div>
+  </div>
+</div>
+
+<!-- Custom confirm dialog -->
+<div id="confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:12px;padding:1.5rem;width:min(320px,88vw);text-align:center">
+    <div id="confirm-msg" style="font-size:14px;color:var(--text);margin-bottom:1.25rem;line-height:1.6"></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="confirmResolve(false)" style="padding:7px 20px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit">取消</button>
+      <button id="confirm-ok-btn" onclick="confirmResolve(true)" style="padding:7px 20px;border:none;border-radius:var(--r);background:var(--red);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Project Modal -->
+<div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:12px;padding:1.25rem;width:min(440px,92vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span style="font-size:15px;font-weight:600;color:var(--text)">新增專案</span>
+      <button onclick="closeAddProject()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3);line-height:1">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">專案名稱 *</label>
+        <input id="ap-name" placeholder="輸入專案名稱" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit" onkeydown="if(event.key==='Enter')confirmAddProject()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">分類</label>
+        <select id="ap-cat" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit"></select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">狀態</label>
+        <select id="ap-status" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">
+          <option value="in-progress">進行中</option>
+          <option value="at-risk">有風險</option>
+          <option value="urgent">緊急</option>
+          <option value="pending">待確認</option>
+          <option value="deferred">暫時延後</option>
+          <option value="done">完成</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">負責人</label>
+        <input id="ap-owner" placeholder="負責人" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">截止日</label>
+        <input id="ap-due" type="date" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">預算</label>
+        <input id="ap-budget" placeholder="例：$85,000" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">
+      </div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">下一步</label>
+        <textarea id="ap-next" placeholder="下一步行動..." rows="2" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:none"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;border-top:0.5px solid var(--border);padding-top:1rem">
+      <button onclick="closeAddProject()" style="padding:7px 16px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit">取消</button>
+      <button onclick="confirmAddProject()" style="padding:7px 16px;border:none;border-radius:var(--r);background:var(--text);color:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Calendar Modal -->
+<div id="cal-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border2);border-radius:12px;padding:1.25rem;width:min(420px,92vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span style="font-size:15px;font-weight:600;color:var(--text)">加入 Google Calendar</span>
+      <button onclick="closeCalModal()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3)">×</button>
+    </div>
+    <div id="cal-project-name" style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:1rem;padding:8px 10px;background:var(--bg2);border-radius:var(--r)"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;color:var(--text3);font-weight:500">開始日期</label>
+          <input id="cal-start" type="date" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;color:var(--text3);font-weight:500">結束日期</label>
+          <input id="cal-end" type="date" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;color:var(--text3);font-weight:500">開始時間</label>
+          <input id="cal-stime" type="time" value="09:00" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;color:var(--text3);font-weight:500">結束時間</label>
+          <input id="cal-etime" type="time" value="10:00" style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer">
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text3);font-weight:500">說明（可選）</label>
+        <textarea id="cal-desc" rows="2" placeholder="會議說明或備註..." style="padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;resize:none"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;border-top:0.5px solid var(--border);padding-top:1rem;margin-top:1rem">
+      <button onclick="closeCalModal()" style="padding:7px 16px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit">取消</button>
+      <button onclick="addToCalendar()" style="padding:7px 16px;border:none;border-radius:var(--r);background:#185FA5;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;display:flex;align-items:center;gap:5px">📅 開啟 Google Calendar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ─────────────────────────────────────
+let CC={'內容產出':'#378ADD','品牌經營':'#7F77DD','客戶執行':'#1D9E75','比稿提案':'#E24B4A','報告交付':'#888780','內部':'#BA7517'};
+const SL={'in-progress':'進行中','at-risk':'有風險','urgent':'緊急','pending':'待確認','deferred':'暫時延後','done':'完成'};
+const BC={'in-progress':'#378ADD','at-risk':'#EF9F27','urgent':'#E24B4A','pending':'#888780','deferred':'#AFA9EC','done':'#639922'};
+let CATS=['內容產出','品牌經營','客戶執行','比稿提案','報告交付','內部'];
+const LS_CATS='motix_cats_v1';
+const MAX_UNDO=20;
+const LS_KEY='motix_pm_v3';
+
+
+// ── Default data ──────────────────────────────────
+const DEFAULT_DATA=[
+  {id:1,cat:'內容產出',name:'產業報告',status:'at-risk',pct:40,due:'2026-04-17',owner:'Rick/各負責人',budget:'—',next:'3/23–3/27 v3過稿；3/30–4/3 與4A過稿；4/13–4/17 定稿',risk:'數據追加待跑出；專家訪談時間未定',open:true,subs:[
+    {id:101,name:'各產業內容產出',owner:'Mint/Zoe/Abby/Celia/Ines/Matt',status:'at-risk',pct:40,due:'2026-04-17',budget:'',next:'過稿v3中',risk:'數據待補'},
+    {id:102,name:'產業專家訪談（汽車/房產）',owner:'—',status:'pending',pct:0,due:'—',next:'時間待確認',risk:'可能延誤'},
+  ]},
+  {id:2,cat:'內容產出',name:'ADM 廣編第5篇',status:'pending',pct:80,due:'—',owner:'Rick',budget:'—',next:'等Rick發布給ADM/DMA',risk:'',open:false,subs:[]},
+  {id:3,cat:'品牌經營',name:'MOTIX 品牌曝光規劃',status:'in-progress',pct:35,due:'2026-04-30',owner:'Mint',budget:'—',next:'廣編、投廣、名單應用持續處理中',risk:'',open:false,subs:[]},
+  {id:4,cat:'品牌經營',name:'MOTIX 服務計劃書/QA',status:'pending',pct:10,due:'—',owner:'Shark',budget:'—',next:'邊走邊看，待確認範疇',risk:'範疇尚未明確',open:false,subs:[]},
+  {id:5,cat:'客戶執行',name:'Shark HydroGO',status:'in-progress',pct:50,due:'—',owner:'Celia/Ines',budget:'—',next:'修提執行中；KOC名單更新中',risk:'小熊餅乾時間未定',open:true,subs:[
+    {id:501,name:'更新KOC名單',owner:'Celia',status:'in-progress',pct:60,due:'2026-03-31',next:'整理中，本週提交',risk:''},
+    {id:502,name:'撰寫KOC Boosting Plan',owner:'Ines',status:'in-progress',pct:30,due:'2026-04-10',next:'草稿撰寫中',risk:''},
+    {id:503,name:'小熊餅乾修提',owner:'Abby',status:'pending',pct:0,due:'—',next:'TBC',risk:'時間未確定'},
+  ]},
+  {id:6,cat:'客戶執行',name:'達美樂 x 靈智',status:'pending',pct:20,due:'2026-03-31',owner:'Matt',budget:'—',next:'等Daphne約客戶3月時間',risk:'3月底窗口，恐錯過',open:false,subs:[]},
+  {id:7,cat:'客戶執行',name:'日立 系列專案',status:'in-progress',pct:60,due:'2026-04-10',owner:'—',budget:'—',next:'回應新長官問題；夏販提案；春販宣傳',risk:'新長官熟悉期，需謹慎',open:true,subs:[
+    {id:701,name:'回應新長官問題',owner:'—',status:'in-progress',pct:50,due:'2026-03-31',next:'盡快回覆',risk:''},
+    {id:702,name:'夏販提案',owner:'—',status:'in-progress',pct:20,due:'2026-04-10',next:'準備中',risk:''},
+    {id:703,name:'春販宣傳',owner:'—',status:'in-progress',pct:70,due:'2026-04-05',next:'執行中',risk:''},
+  ]},
+  {id:8,cat:'客戶執行',name:'專科洗面乳',status:'in-progress',pct:30,due:'—',owner:'—',budget:'—',next:'追Brief；產品寄送；更新各文件',risk:'',open:false,subs:[]},
+  {id:9,cat:'客戶執行',name:'Clarius 超音波 B2B',status:'in-progress',pct:25,due:'—',owner:'—',budget:'$85,000',next:'追Brief，確認醫美醫師策略',risk:'',open:false,subs:[]},
+  {id:10,cat:'比稿提案',name:'AQUA 比稿',status:'urgent',pct:10,due:'2026-04-10',owner:'—',budget:'250–300萬',next:'4/9–4/10提案；SKY SERVICE/Sales Kit/案例數據',risk:'預算大時間緊，提案方向需本週確認',open:false,subs:[]},
+  {id:11,cat:'報告交付',name:'Ford 數據結案報告',status:'in-progress',pct:70,due:'—',owner:'Mint',budget:'—',next:'Mint調整後再過稿',risk:'',open:false,subs:[]},
+  {id:12,cat:'報告交付',name:'Macallan 數據分析報告',status:'done',pct:100,due:'2026-03-27',owner:'—',budget:'$60,000',next:'已完成（先勢公關）',risk:'',open:false,subs:[]},
+  {id:13,cat:'報告交付',name:'Netflix 數據報告',status:'done',pct:100,due:'2026-03-19',owner:'—',budget:'—',next:'3/19已出稿',risk:'',open:false,subs:[]},
+  {id:14,cat:'報告交付',name:'高雄《航海王》大遊行',status:'done',pct:100,due:'2026-03-15',owner:'—',budget:'—',next:'人數統計完成',risk:'',open:false,subs:[]},
+  {id:15,cat:'內部',name:'米蘭內部必修課',status:'in-progress',pct:20,due:'2026-03-31',owner:'Celia',budget:'—',next:'媒體課3月底開始',risk:'本週需確認啟動',open:false,subs:[]},
+];
+
+// ── State ──────────────────────────────────────────
+let DATA=[];
+let undoStack=[];  // array of JSON snapshots
+let redoStack=[];
+let catF='全部',statF='',srchQ='',sortCol='',sortDir=1;
+let dragSrcId=null;
+let saveTimer=null;
+let catCollapsed={'__done__':true};
+
+
+// ── Custom confirm (avoids file:// blocking) ──────
+let _confirmResolve=null;
+function confirmAsync(msg,okLabel='刪除',danger=true){
+  return new Promise(resolve=>{
+    _confirmResolve=resolve;
+    document.getElementById('confirm-msg').textContent=msg;
+    const okBtn=document.getElementById('confirm-ok-btn');
+    okBtn.textContent=okLabel;
+    okBtn.style.background=danger?'var(--red)':'var(--text)';
+    document.getElementById('confirm-overlay').style.display='flex';
+  });
+}
+function confirmResolve(val){
+  document.getElementById('confirm-overlay').style.display='none';
+  if(_confirmResolve){_confirmResolve(val);_confirmResolve=null;}
+}
+
+// ── Undo / Redo ────────────────────────────────────
+function snapshot(){
+  undoStack.push(JSON.stringify(DATA));
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+  redoStack=[];
+  updateUndoBtns();
+}
+function undo(){
+  if(!undoStack.length) return;
+  redoStack.push(JSON.stringify(DATA));
+  DATA=JSON.parse(undoStack.pop());
+  updateUndoBtns();
+  renderTable();
+  saveData();
+  showToast('已復原');
+}
+function redo(){
+  if(!redoStack.length) return;
+  undoStack.push(JSON.stringify(DATA));
+  DATA=JSON.parse(redoStack.pop());
+  updateUndoBtns();
+  renderTable();
+  saveData();
+  showToast('已重做');
+}
+function updateUndoBtns(){
+  document.getElementById('undo-btn').disabled=!undoStack.length;
+  document.getElementById('redo-btn').disabled=!redoStack.length;
+}
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo()}
+  if(e.key==='Escape'){const m=document.getElementById('cat-modal');if(m&&m.style.display!=='none')closeCatMgr();const co=document.getElementById('confirm-overlay');if(co&&co.style.display!=='none')confirmResolve(false);const am=document.getElementById('add-modal');if(am&&am.style.display!=='none')closeAddProject();const cm=document.getElementById('cal-modal');if(cm&&cm.style.display!=='none')closeCalModal();}
+});
+
+// ── Toast ──────────────────────────────────────────
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── Cloud sync (Apps Script) ───────────────────────
+
+
+
+
+
+
+// ── Persistence ────────────────────────────────────
+function loadData(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    DATA=raw?JSON.parse(raw):JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }catch(e){DATA=JSON.parse(JSON.stringify(DEFAULT_DATA))}
+}
+function saveData(){
+  if(!_authGranted) return;
+  try{localStorage.setItem(LS_KEY,JSON.stringify(DATA))}catch(e){}
+  const dot=document.getElementById('savedot');
+  const txt=document.getElementById('savetxt');
+  if(dot){dot.className='save-dot saving';}
+  if(txt)txt.textContent='儲存中...';
+  clearTimeout(window._saveDisplayTimer);
+  window._saveDisplayTimer=setTimeout(()=>{
+    if(dot)dot.className='save-dot';
+    if(txt)txt.textContent='已儲存';
+  },600);
+}
+
+
+// ── Render ─────────────────────────────────────────
+function renderSummary(){
+  const c={urgent:0,'at-risk':0,'in-progress':0,pending:0,deferred:0,done:0};
+  DATA.forEach(d=>{if(c[d.status]!==undefined)c[d.status]++;});
+  document.getElementById('sumbar').innerHTML=
+    `<div class="si"><div class="sd" style="background:#E24B4A"></div>${c.urgent} 緊急</div>
+     <div class="si"><div class="sd" style="background:#EF9F27"></div>${c['at-risk']} 有風險</div>
+     <div class="si"><div class="sd" style="background:#378ADD"></div>${c['in-progress']} 進行中</div>
+     <div class="si"><div class="sd" style="background:#888780"></div>${c.pending} 待確認</div>
+     <div class="si"><div class="sd" style="background:#AFA9EC"></div>${c.deferred||0} 暫時延後</div>
+     <div class="si"><div class="sd" style="background:#639922"></div>${c.done} 完成</div>
+     <div class="si" style="margin-left:auto;color:var(--text3)">共 ${DATA.length} 個　｜　已列預算 ${(() => {
+       let total=0; let hasRange=false;
+       DATA.forEach(r=>{
+         const b=(r.budget||'').trim();
+         if(!b||b==='—')return;
+         // 1. Range: e.g. 250–300萬
+         const rangeMatch=b.match(/([\d,]+)\s*[–\-~]\s*([\d,]+)\s*(萬|千|百)?/);
+         if(rangeMatch){
+           hasRange=true;
+           const hi=parseFloat(rangeMatch[2].replace(/,/g,''));
+           const unit=rangeMatch[3]||'';
+           total+=unit==='萬'?hi*10000:unit==='千'?hi*1000:hi;
+           return;
+         }
+         // 2. 萬 format: 300萬, 900萬 (must check BEFORE dollar to avoid capturing just the number)
+         const manMatch=b.match(/([\d.]+)萬/);
+         if(manMatch){ total+=parseFloat(manMatch[1])*10000; return; }
+         // 3. $ format: $85,000
+         const dollarMatch=b.match(/\$?([\d,]+)/);
+         if(dollarMatch){ total+=parseFloat(dollarMatch[1].replace(/,/g,'')); return; }
+       });
+       if(total===0) return '無預算資料';
+       const manVal=total/10000;
+       const fmt=manVal.toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:1})+'萬';
+       return (hasRange?'最高 ':'')+'$'+fmt;
+     })()} </div>
+     `
+}
+function getFiltered(){
+  let d=[...DATA];
+  if(catF!=='全部') d=d.filter(r=>r.cat===catF);
+  if(statF) d=d.filter(r=>r.status===statF);
+  if(srchQ) d=d.filter(r=>(r.name||'').toLowerCase().includes(srchQ)||(r.owner||'').toLowerCase().includes(srchQ));
+  if(sortCol) d.sort((a,b)=>{
+    let av=a[sortCol]??'',bv=b[sortCol]??'';
+    if(sortCol==='pct'){av=+av;bv=+bv}
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+  return d;
+}
+function renderTable(){
+  renderSummary();
+  const rows=getFiltered();
+  const groups={};CATS.forEach(c=>groups[c]=[]);
+  rows.forEach(r=>{if(groups[r.cat])groups[r.cat].push(r)});
+  let html='';
+  CATS.forEach(cat=>{
+    const gr=groups[cat].filter(r=>r.status!=='done');if(!gr.length)return;
+    const col=CC[cat]||'#888';
+    const collapsed=catCollapsed[cat];
+    html+=`<tr class="cat-tr" style="display:table-row!important"><td colspan="10" style="display:table-cell!important">
+      <div class="cat-label" onclick="toggleCatCollapse('${cat}')">
+        <div style="width:8px;height:8px;border-radius:2px;background:${col}"></div>
+        ${cat}<span class="cat-badge">${gr.length}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text3)">${collapsed?'▸':'▾'}</span>
+      </div></td></tr>`;
+    if(!collapsed) gr.forEach(r=>{html+=rowHTML(r,col)});
+  });
+  // Done section
+  const doneAll=rows.filter(r=>r.status==='done');
+  if(doneAll.length){
+    const doneCollapsed=catCollapsed['__done__']!==false;
+    html+=`<tr class="cat-tr" style="border-top:1.5px solid var(--border);display:table-row!important"><td colspan="10" style="display:table-cell!important">
+      <div class="cat-label" onclick="toggleCatCollapse('__done__')">
+        <div style="width:8px;height:8px;border-radius:2px;background:#639922"></div>
+        已完成<span class="cat-badge">${doneAll.length}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text3)">${doneCollapsed?'▸':'▾'}</span>
+      </div></td></tr>`;
+    if(!doneCollapsed) doneAll.forEach(r=>{html+=rowHTML(r,'#639922')});
+  }
+  document.getElementById('tbody').innerHTML=html||(catF!=='全部'||statF||srchQ?'<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--text3);font-size:13px">沒有符合的專案</td></tr>':'');
+  renderFrow();
+  setTextareaValues();
+}
+function setTextareaValues(){
+  const rows=[...DATA,...DATA.flatMap(r=>r.subs||[])];
+  const fields=['next','risk','budget'];
+  document.querySelectorAll('[data-val]').forEach(el=>{
+    const key=el.getAttribute('data-val');
+    let matched=false;
+    for(const f of fields){
+      if(key.endsWith('-'+f)){
+        const id=parseInt(key.slice(0,-(f.length+1)));
+        const item=rows.find(x=>x.id===id);
+        if(item){el.value=item[f]||'';matched=true;break;}
+      }
+    }
+  });
+}
+function rowHTML(r,col){
+  const bc=BC[r.status]||'#888';
+  const dc=dueColor(r);
+  let html=`<tr class="dtr" id="dtr-${r.id}" draggable="true" data-id="${r.id}" style="display:table-row!important"
+    ondragstart="dstart(event,${r.id})" ondragover="dover(event,${r.id})"
+    ondrop="ddrop(event,${r.id})" ondragleave="dleave(${r.id})" ondragend="dend()">
+    <td style="display:table-cell!important"><div class="dh" title="拖拉調整優先順序">⠿</div></td>
+    <td style="display:table-cell!important;padding:0;width:4px"><div class="cbar" style="background:${col}"></div></td>
+    <td><div class="cell" style="gap:4px">
+      <button class="exp" onclick="toggleSubs(${r.id})">${r.open?'▾':'▸'}</button>
+      <input class="ci" value="${esc(r.name)}" oninput="sv(${r.id},'name',this.value)" style="font-weight:600" placeholder="專案名稱">
+    </div></td>
+    <td style="padding:6px 9px"><select class="ssel s-${r.status}" onchange="svStatus(${r.id},this)">${statusOpts(r.status)}</select></td>
+    <td><div class="cell"><input class="ci" type="date" value="${r.due&&r.due!=='—'?r.due:''}" onchange="sv(${r.id},'due',this.value||'—')" style="color:${dc};min-width:130px"></div></td>
+    <td><div class="cell"><input class="ci" value="${esc(r.owner)}" oninput="sv(${r.id},'owner',this.value)" placeholder="負責人"></div></td>
+    <td><div class="cell"><input class="ci" data-val="${r.id}-budget" oninput="sv(${r.id},'budget',this.value)" placeholder="—"></div></td>
+    <td><div class="cell"><textarea class="ci" rows="2" oninput="sv(${r.id},'next',this.value)" placeholder="下一步..." data-val="${r.id}-next"></textarea></div></td>
+    <td><div class="cell"><textarea class="ci" rows="2" oninput="sv(${r.id},'risk',this.value)" style="color:${r.risk?'#A32D2D':'var(--text)'}" placeholder="無" data-val="${r.id}-risk"></textarea></div></td>
+    <td><div style="padding:4px 4px;display:flex;flex-direction:column;gap:3px;align-items:center">
+      <button class="del" onclick="delRow(${r.id})" title="刪除">✕</button>
+      <button onclick="openCalModal(${r.id})" title="加入 Google Calendar" style="width:22px;height:22px;border-radius:4px;border:0.5px solid var(--border);background:transparent;cursor:pointer;font-size:11px;color:var(--blue-text);display:flex;align-items:center;justify-content:center">📅</button>
+    </div></td>
+  </tr>`;
+  if(r.open&&r.subs&&r.subs.length) r.subs.forEach(s=>{html+=subRowHTML(r.id,s,col)});
+  if(r.open) html+=`<tr class="sub-tr"><td colspan="10"><button class="add-sub-btn" onclick="addSub(${r.id})">＋ 新增子項目</button></td></tr>`;
+  return html;
+}
+function subRowHTML(pid,s,col){
+  const bc=BC[s.status]||'#888';
+  const dc=dueColorSub(s);
+  return`<tr class="sub-tr" id="subtr-${s.id}" draggable="true" style="display:table-row!important"
+    ondragstart="dSubStart(event,${pid},${s.id})"
+    ondragover="dSubOver(event,${pid},${s.id})"
+    ondrop="dSubDrop(event,${pid},${s.id})"
+    ondragleave="dSubLeave(${s.id})"
+    ondragend="dSubEnd()">
+    <td><div class="dh" style="opacity:0;font-size:10px;padding:6px 3px 6px 8px" id="sdh-${s.id}">⠿</div></td>
+    <td style="padding:0;width:4px"><div style="width:3px;min-height:32px;background:${col};opacity:.3;display:block"></div></td>
+    <td><div style="padding:5px 9px 5px 8px;display:flex;align-items:flex-start;gap:5px">
+      <span style="color:var(--text3);font-size:11px;margin-top:1px;flex-shrink:0">└</span>
+      <input class="sci" value="${esc(s.name)}" oninput="svSub(${pid},${s.id},'name',this.value)" style="font-weight:500;flex:1" placeholder="子項目名稱">
+    </div></td>
+    <td style="padding:5px 9px"><select class="ssel s-${s.status}" onchange="svSubStatus(${pid},${s.id},this)" style="font-size:10px;padding:2px 5px">${statusOpts(s.status)}</select></td>
+    <td><div style="padding:5px 9px"><input class="sci" type="date" value="${s.due&&s.due!=='—'?s.due:''}" onchange="svSub(${pid},${s.id},'due',this.value||'—')" style="color:${dc}"></div></td>
+    <td><div style="padding:5px 9px"><input class="sci" value="${esc(s.owner||'')}" oninput="svSub(${pid},${s.id},'owner',this.value)" placeholder="負責人"></div></td>
+    <td><div style="padding:5px 9px"><input class="sci" data-val="${s.id}-budget" oninput="svSub(${pid},${s.id},'budget',this.value)" placeholder="—"></div></td>
+    <td><div style="padding:5px 9px"><textarea class="sci" rows="1" oninput="svSub(${pid},${s.id},'next',this.value)" placeholder="下一步..." data-val="${s.id}-next"></textarea></div></td>
+    <td><div style="padding:5px 9px"><textarea class="sci" rows="1" oninput="svSub(${pid},${s.id},'risk',this.value)" style="color:${s.risk?'#A32D2D':'var(--text2)'}" placeholder="無" data-val="${s.id}-risk"></textarea></div></td>
+    <td><div style="padding:4px 6px"><button class="del" onclick="delSub(${pid},${s.id})">✕</button></div></td>
+  </tr>`;
+}
+function statusOpts(cur){
+  return['in-progress','at-risk','urgent','pending','deferred','done']
+    .map(s=>`<option value="${s}"${cur===s?' selected':''}>${SL[s]||s}</option>`).join('');
+}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/`/g,'&#x60;')}
+function dueColor(r){
+  if(r.status==='done')return'var(--green)';
+  if(!r.due||r.due==='—')return'var(--text3)';
+  const dl=Math.ceil((new Date(r.due)-new Date())/86400000);
+  return dl<0?'var(--red)':dl<7?'var(--red)':dl<14?'#BA7517':'var(--text2)';
+}
+function dueColorSub(s){
+  if(s.status==='done')return'var(--green)';
+  if(!s.due||s.due==='—')return'var(--text3)';
+  const dl=Math.ceil((new Date(s.due)-new Date())/86400000);
+  return dl<0?'var(--red)':dl<7?'var(--red)':dl<14?'#BA7517':'var(--text2)';
+}
+
+// ── Mutations ──────────────────────────────────────
+let snapTimer=null;
+function debouncedSnapshot(){
+  clearTimeout(snapTimer);
+  snapTimer=setTimeout(()=>snapshot(),800);
+}
+function sv(id,f,v){
+  debouncedSnapshot();
+  const r=DATA.find(x=>x.id===id);if(!r)return;
+  r[f]=v;
+  if(f==='owner'&&r.subs&&r.subs.length>0){
+    r.subs.forEach(s=>{if(!s.owner||s.owner===''||s.owner==='—')s.owner=v;});
+    saveData();renderTable();
+  } else {
+    saveData();
+  }
+}
+
+function svStatus(id,sel){
+  snapshot();
+  const r=DATA.find(x=>x.id===id);if(!r)return;
+  r.status=sel.value;sel.className='ssel s-'+sel.value;
+  const pf=document.getElementById('pf-'+id);if(pf)pf.style.background=BC[sel.value]||'#888';
+  saveData();renderSummary();
+}
+function svSub(pid,sid,f,v){
+  debouncedSnapshot();
+  const r=DATA.find(x=>x.id===pid);if(r){const s=r.subs.find(x=>x.id===sid);if(s){s[f]=v;saveData()}}
+}
+
+function svSubStatus(pid,sid,sel){
+  snapshot();
+  const r=DATA.find(x=>x.id===pid);if(!r)return;
+  const s=r.subs.find(x=>x.id===sid);if(s){s.status=sel.value;sel.className='ssel s-'+sel.value;}
+  const pf=document.getElementById('spf-'+sid);if(pf)pf.style.background=BC[sel.value]||'#888';
+  saveData();
+}
+function toggleSubs(id){
+  const r=DATA.find(x=>x.id===id);if(r){r.open=!r.open;saveData();renderTable()}
+}
+function addSub(pid){
+  snapshot();
+  const r=DATA.find(x=>x.id===pid);if(!r)return;
+  r.subs.push({id:Date.now(),name:'新子項目',owner:'',status:'in-progress',pct:0,due:'',budget:'',next:'',risk:''});
+  r.open=true;saveData();renderTable();
+}
+async function delSub(pid,sid){
+  if(!await confirmAsync('刪除此子項目？'))return;
+  snapshot();
+  const r=DATA.find(x=>x.id===pid);if(!r)return;
+  r.subs=r.subs.filter(s=>s.id!==sid);saveData();renderTable();
+}
+async function delRow(id){
+  if(!await confirmAsync('刪除此專案及所有子項目？'))return;
+  snapshot();
+  DATA=DATA.filter(x=>x.id!==id);saveData();renderTable();
+}
+
+
+
+// ── Drag & Drop ────────────────────────────────────
+function dstart(e,id){dragSrcId=id;setTimeout(()=>{const el=document.getElementById('dtr-'+id);if(el)el.classList.add('dragging')},0)}
+function dend(){dragSrcId=null;document.querySelectorAll('.dtr').forEach(r=>r.classList.remove('dragging','drag-over'))}
+function dover(e,id){e.preventDefault();if(dragSrcId&&dragSrcId!==id){document.querySelectorAll('.dtr').forEach(r=>r.classList.remove('drag-over'));const el=document.getElementById('dtr-'+id);if(el)el.classList.add('drag-over')}}
+function dleave(id){const el=document.getElementById('dtr-'+id);if(el)el.classList.remove('drag-over')}
+function ddrop(e,id){
+  e.preventDefault();if(!dragSrcId||dragSrcId===id)return;
+  snapshot();
+  const si=DATA.findIndex(x=>x.id===dragSrcId),ti=DATA.findIndex(x=>x.id===id);
+  if(si<0||ti<0)return;
+  const[moved]=DATA.splice(si,1);DATA.splice(ti,0,moved);
+  saveData();renderTable();
+}
+
+// ── Misc ───────────────────────────────────────────
+function toggleCatCollapse(cat){catCollapsed[cat]=!catCollapsed[cat];renderTable()}
+function setF(el,type,val){
+  if(type==='cat'){catF=val;statF=''}else{statF=statF===val?'':val;if(statF)catF='全部'}
+  document.querySelectorAll('.fc').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');if(type==='cat')el.classList.add('on');
+  renderTable();
+}
+function doSearch(q){srchQ=q.toLowerCase();renderTable()}
+function sortBy(col){
+  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1}
+  ['name','status','pct','due'].forEach(c=>{const el=document.getElementById('sort-'+c);if(el)el.textContent=''});
+  const el=document.getElementById('sort-'+col);if(el)el.textContent=sortDir===1?' ↑':' ↓';
+  renderTable();
+}
+
+
+// ── Backup / Restore ──────────────────────────────
+
+
+
+
+// ── Category Management ────────────────────────────
+function loadCats(){
+  try{
+    const raw=localStorage.getItem(LS_CATS);
+    if(raw){
+      const saved=JSON.parse(raw);
+      CATS=saved.names||CATS;
+      saved.colors&&Object.assign(CC,saved.colors);
+    }
+  }catch(e){}
+}
+function saveCats(){
+  localStorage.setItem(LS_CATS,JSON.stringify({names:CATS,colors:CC}));
+}
+function openCatMgr(){
+  renderCatList();
+  document.getElementById('cat-modal').style.display='flex';
+}
+function closeCatMgr(){
+  document.getElementById('cat-modal').style.display='none';
+  renderFrow();
+  renderTable();
+  showToast('分類設定已更新');
+}
+function renderCatList(){
+  const el=document.getElementById('cat-list-edit');
+  el.innerHTML=CATS.map((cat,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)">
+      <input type="color" value="${CC[cat]||'#888780'}" onchange="updateCatColor('${cat}',this.value)"
+        style="width:28px;height:28px;border:0.5px solid var(--border2);border-radius:4px;cursor:pointer;padding:2px;flex-shrink:0">
+      <input value="${cat}" onchange="renameCat(${i},this.value)"
+        style="flex:1;border:0.5px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit">
+      <button onclick="moveCat(${i},-1)" style="border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer;padding:4px 7px;font-size:11px" title="上移">↑</button>
+      <button onclick="moveCat(${i},1)" style="border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer;padding:4px 7px;font-size:11px" title="下移">↓</button>
+      <button onclick="deleteCat(${i})" style="border:0.5px solid #F7C1C1;border-radius:4px;background:var(--red-bg);color:var(--red-text);cursor:pointer;padding:4px 8px;font-size:11px">刪除</button>
+    </div>`).join('');
+}
+function renameCat(i,newName){
+  if(!newName.trim())return;
+  const old=CATS[i];
+  CATS[i]=newName.trim();
+  CC[newName.trim()]=CC[old]||'#888780';
+  if(newName.trim()!==old) delete CC[old];
+  DATA.forEach(r=>{if(r.cat===old)r.cat=newName.trim()});
+  saveCats();saveData();renderCatList();
+}
+function updateCatColor(cat,color){
+  CC[cat]=color;saveCats();
+}
+function moveCat(i,dir){
+  const j=i+dir;
+  if(j<0||j>=CATS.length)return;
+  [CATS[i],CATS[j]]=[CATS[j],CATS[i]];
+  saveCats();renderCatList();
+}
+async function deleteCat(i){
+  const cat=CATS[i];
+  if(!await confirmAsync('刪除分類「'+cat+'」？該分類下的專案會移至「其他」'))return;
+  CATS.splice(i,1);
+  if(!CATS.includes('其他')){CATS.push('其他');CC['其他']='#888780';}
+  DATA.forEach(r=>{if(r.cat===cat)r.cat='其他'});
+  delete CC[cat];
+  saveCats();saveData();renderCatList();
+}
+function addCat(){
+  const name=document.getElementById('new-cat-name').value.trim();
+  if(!name){showToast('請輸入分類名稱');return}
+  if(CATS.includes(name)){showToast('此分類已存在');return}
+  const color=document.getElementById('new-cat-color').value;
+  CATS.push(name);CC[name]=color;
+  document.getElementById('new-cat-name').value='';
+  saveCats();renderCatList();showToast('已新增分類：'+name);
+}
+function renderFrow(){
+  const frow=document.getElementById('frow-cats');
+  if(!frow)return;
+  frow.innerHTML=CATS.map(cat=>`<div class="fc${catF===cat?' on':''}" onclick="setF(this,'cat','${cat}')">${cat}</div>`).join('');
+}
+
+
+
+// ── Auth (hardened) ─────────────────────────────────
+const ALLOWED_EMAIL = 'MatthewLin0313@gmail.com';
+let _authUser = null;
+// Runtime nonce - cannot be guessed from console
+const _authNonce = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36)+Date.now().toString(36);
+let _authGranted = false;
+
+function _grantAndShow(nonce){
+  // Must supply correct nonce to launch app - prevents console bypass
+  if(nonce !== _authNonce){ console.warn('Unauthorized'); return; }
+  _authGranted = true;
+  document.getElementById('login-screen').classList.add('hidden');
+  loadCats();
+  loadData();
+  renderTable();
+  cloudLoad().then(loaded=>{ if(loaded) renderTable(); });
+  if(localStorage.getItem('hide_guide')) document.getElementById('sync-guide').style.display='none';
+}
+
+async function signIn(){
+  const tc = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: 'email profile https://www.googleapis.com/auth/drive.file',
+    callback: async (resp) => {
+      if(resp.error){ console.error(resp); return; }
+      _accessToken = resp.access_token;
+      try{
+        const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers:{ Authorization:'Bearer '+resp.access_token }
+        });
+        const info = await r.json();
+        if(info.email && info.email.toLowerCase() === ALLOWED_EMAIL.toLowerCase()){
+          _authUser = info;
+          localStorage.setItem('motix_auth', JSON.stringify({email:info.email, name:info.name, ts:Date.now()}));
+          _grantAndShow(_authNonce);
+        } else {
+          _accessToken = null;
+          document.getElementById('login-err').classList.add('show');
+        }
+      } catch(e){ console.error(e); }
+    }
+  });
+  tc.requestAccessToken({prompt:'select_account'});
+}
+
+function checkAuth(){
+  try{
+    const saved = localStorage.getItem('motix_auth');
+    if(saved){
+      const info = JSON.parse(saved);
+      if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase() && (Date.now()-info.ts)<7*24*60*60*1000){
+        _authUser = info;
+        _grantAndShow(_authNonce);
+        return;
+      } else {
+        // Expired - clear it
+        localStorage.removeItem('motix_auth');
+      }
+    }
+  } catch(e){}
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ── Google Drive backup ────────────────────────────
+const GDRIVE_CLIENT_ID = '83364575040-n7bqkadg2ejc583tmcg8omand48h2bb9.apps.googleusercontent.com';
+const GDRIVE_FILENAME  = 'MattTeam_備份.json';
+let   _gapiReady = false;
+let   _tokenClient = null;
+let   _accessToken = null;
+
+function setClientId(id){
+  localStorage.setItem('motix_gclient', id);
+  location.reload();
+}
+
+function ensureGapi(){
+  return new Promise((resolve, reject) => {
+    if (_gapiReady){ resolve(); return; }
+    gapi.load('client', async () => {
+      await gapi.client.init({});
+      _gapiReady = true;
+      resolve();
+    });
+  });
+}
+
+function getToken(){
+  return new Promise((resolve,reject)=>{
+    if(_accessToken){resolve(_accessToken);return;}
+    _tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:GDRIVE_CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:(resp)=>{
+        if(resp.error){reject(resp);return;}
+        _accessToken=resp.access_token;
+        resolve(_accessToken);
+      }
+    });
+    _tokenClient.requestAccessToken({prompt:''});
+  });
+}
+
+async function driveSave(){
+  if(!_authGranted){showToast('請先登入');return;}
+  try{
+    showToast('連接 Google Drive...');
+    await ensureGapi();
+    const token = await getToken();
+    const body = JSON.stringify(DATA, null, 2);
+
+    // Check if file already exists
+    const searchRes = await gapi.client.request({
+      path: 'https://www.googleapis.com/drive/v3/files',
+      method: 'GET',
+      params: { q: `name='${GDRIVE_FILENAME}' and trashed=false`, fields: 'files(id,name)' },
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const files = searchRes.result.files || [];
+
+    if(files.length > 0){
+      // Update existing file
+      await gapi.client.request({
+        path: `https://www.googleapis.com/upload/drive/v3/files/${files[0].id}`,
+        method: 'PATCH',
+        params: { uploadType: 'media' },
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body
+      });
+    } else {
+      // Create new file
+      const meta = JSON.stringify({ name: GDRIVE_FILENAME, mimeType: 'application/json' });
+      const boundary = '-------314159265358979323846';
+      const delimiter = '\r\n--' + boundary + '\r\n';
+      const close_delim = '\r\n--' + boundary + '--';
+      const multipartBody = delimiter +
+        'Content-Type: application/json\r\n\r\n' + meta + delimiter +
+        'Content-Type: application/json\r\n\r\n' + body + close_delim;
+      await gapi.client.request({
+        path: 'https://www.googleapis.com/upload/drive/v3/files',
+        method: 'POST',
+        params: { uploadType: 'multipart' },
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+        body: multipartBody
+      });
+    }
+    showToast('✓ 已備份到 Google Drive！');
+  } catch(e){
+    if(e.message === 'no client id') return;
+    showToast('備份失敗：' + (e.result?.error?.message || e.message || '未知錯誤'));
+    console.error(e);
+  }
+}
+
+async function driveLoad(){
+  if(!_authGranted){showToast('請先登入');return;}
+  try{
+    showToast('連接 Google Drive...');
+    await ensureGapi();
+    const token = await getToken();
+
+    // Find the file
+    const searchRes = await gapi.client.request({
+      path: 'https://www.googleapis.com/drive/v3/files',
+      method: 'GET',
+      params: { q: `name='${GDRIVE_FILENAME}' and trashed=false`, fields: 'files(id,name,modifiedTime)' },
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const files = searchRes.result.files || [];
+    if(files.length === 0){ showToast('Drive 上找不到備份檔案，請先備份一次'); return; }
+
+    const fileId = files[0].id;
+    const modTime = new Date(files[0].modifiedTime).toLocaleString('zh-TW');
+
+    if(!await confirmAsync('從 Google Drive 匯入備份？\n（最後修改：' + modTime + '）\n目前的資料將被取代。', '匯入', false)) return;
+
+    const contentRes = await gapi.client.request({
+      path: `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      method: 'GET',
+      params: { alt: 'media' },
+      headers: { Authorization: 'Bearer ' + token }
+    });
+
+    const imported = typeof contentRes.result === 'string'
+      ? JSON.parse(contentRes.result)
+      : contentRes.result;
+
+    if(!Array.isArray(imported)){ showToast('備份格式錯誤'); return; }
+    snapshot();
+    DATA = imported;
+    saveData(); renderTable();
+    showToast('✓ 已從 Drive 匯入，共 ' + DATA.length + ' 個專案');
+  } catch(e){
+    if(e.message === 'no client id') return;
+    showToast('匯入失敗：' + (e.result?.error?.message || e.message || '未知錯誤'));
+    console.error(e);
+  }
+}
+
+
+
+
+// ── Google Calendar integration ────────────────────
+let _calProjectId=null;
+function openCalModal(id){
+  _calProjectId=id;
+  const r=DATA.find(x=>x.id===id);if(!r)return;
+  document.getElementById('cal-project-name').textContent=r.name+(r.owner?' — '+r.owner:'');
+  // Pre-fill dates from project
+  const today=new Date().toISOString().slice(0,10);
+  const due=r.due&&r.due!=='—'?r.due:today;
+  document.getElementById('cal-start').value=today;
+  document.getElementById('cal-end').value=due;
+  document.getElementById('cal-desc').value=(r.next?'下一步：'+r.next+'\n':'')+(r.risk?'備註：'+r.risk:'');
+  document.getElementById('cal-modal').style.display='flex';
+}
+function closeCalModal(){
+  document.getElementById('cal-modal').style.display='none';
+}
+function addToCalendar(){
+  const r=DATA.find(x=>x.id===_calProjectId);if(!r)return;
+  const title=encodeURIComponent(r.name);
+  const desc=encodeURIComponent(document.getElementById('cal-desc').value);
+  const sdate=document.getElementById('cal-start').value;
+  const edate=document.getElementById('cal-end').value;
+  const stime=document.getElementById('cal-stime').value.replace(':','');
+  const etime=document.getElementById('cal-etime').value.replace(':','');
+  if(!sdate){showToast('請選擇開始日期');return;}
+  const start=sdate.replace(/-/g,'')+
+    (stime?'T'+stime+'00':'');
+  const end=(edate||sdate).replace(/-/g,'')+
+    (etime?'T'+etime+'00':'');
+  const url=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${desc}`;
+  window.open(url,'_blank');
+  closeCalModal();
+  showToast('已開啟 Google Calendar');
+}
+
+// ── Add Project Modal ──────────────────────────────
+function openAddProject(){
+  // Populate category select
+  const sel=document.getElementById('ap-cat');
+  sel.innerHTML=CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  // Reset fields
+  ['ap-name','ap-owner','ap-budget','ap-next'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ap-due').value='';
+  document.getElementById('ap-status').value='in-progress';
+  document.getElementById('add-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('ap-name').focus(),50);
+}
+function closeAddProject(){
+  document.getElementById('add-modal').style.display='none';
+}
+function confirmAddProject(){
+  const name=document.getElementById('ap-name').value.trim();
+  if(!name){showToast('請輸入專案名稱');document.getElementById('ap-name').focus();return;}
+  const cat=document.getElementById('ap-cat').value;
+  const status=document.getElementById('ap-status').value;
+  const owner=document.getElementById('ap-owner').value.trim();
+  const due=document.getElementById('ap-due').value||'—';
+  const budget=document.getElementById('ap-budget').value.trim();
+  const next=document.getElementById('ap-next').value.trim();
+  snapshot();
+  DATA.push({id:Date.now(),cat,name,status,pct:0,due,owner,budget,next,risk:'',open:false,subs:[]});
+  catF='全部';statF='';
+  document.querySelectorAll('.fc').forEach((c,i)=>c.classList.toggle('on',i===0));
+  saveData();renderTable();
+  closeAddProject();
+  showToast('已新增：'+name);
+}
+
+// ── Sub-item drag to reorder ───────────────────────
+let _dragSubPid=null, _dragSubSid=null;
+function dSubStart(e,pid,sid){
+  _dragSubPid=pid; _dragSubSid=sid;
+  setTimeout(()=>{const el=document.getElementById('subtr-'+sid);if(el)el.style.opacity='.35'},0);
+}
+function dSubEnd(){
+  _dragSubPid=null; _dragSubSid=null;
+  document.querySelectorAll('.sub-tr').forEach(r=>{r.style.opacity='';r.classList.remove('sub-drag-over')});
+}
+function dSubOver(e,pid,sid){
+  e.preventDefault();
+  if(_dragSubSid&&_dragSubSid!==sid&&_dragSubPid===pid){
+    document.querySelectorAll('.sub-tr').forEach(r=>r.classList.remove('sub-drag-over'));
+    const el=document.getElementById('subtr-'+sid);if(el)el.classList.add('sub-drag-over');
+  }
+}
+function dSubLeave(sid){
+  const el=document.getElementById('subtr-'+sid);if(el)el.classList.remove('sub-drag-over');
+}
+function dSubDrop(e,pid,sid){
+  e.preventDefault();
+  if(!_dragSubSid||_dragSubSid===sid||_dragSubPid!==pid)return;
+  const r=DATA.find(x=>x.id===pid);if(!r)return;
+  const si=r.subs.findIndex(s=>s.id===_dragSubSid);
+  const ti=r.subs.findIndex(s=>s.id===sid);
+  if(si<0||ti<0)return;
+  snapshot();
+  const[moved]=r.subs.splice(si,1);r.subs.splice(ti,0,moved);
+  saveData();renderTable();
+}
+
+// ── Init ───────────────────────────────────────────
+document.getElementById('datedisp').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+checkAuth();
+</script>
+</body>
+</html>

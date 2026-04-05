@@ -1,0 +1,11 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "unsafe-none"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Content-Type = "text/html; charset=UTF-8"
