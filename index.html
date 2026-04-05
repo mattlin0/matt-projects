@@ -856,8 +856,10 @@ function checkAuth(){
     const saved = localStorage.getItem('motix_auth');
     if(saved){
       const info = JSON.parse(saved);
-      if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase() && (Date.now()-info.ts)<7*24*60*60*1000){
+      if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase() && (Date.now()-info.ts)<30*24*60*60*1000){
         _authUser = info;
+        // Refresh timestamp so 30 days resets on each use
+        localStorage.setItem('motix_auth', JSON.stringify({email:info.email, name:info.name, ts:Date.now()}));
         _grantAndShow(_authNonce);
         return;
       } else {
