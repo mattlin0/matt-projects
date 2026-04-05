@@ -815,14 +815,19 @@ function showLogin(){
   document.getElementById('login-screen').classList.remove('hidden');
 }
 function enterApp(){
+  console.log('[Auth] enterApp() called');
   _authGranted = true;
-  document.getElementById('login-screen').classList.add('hidden');
+  const ls = document.getElementById('login-screen');
+  console.log('[Auth] login-screen classes before:', ls.className);
+  ls.classList.add('hidden');
+  console.log('[Auth] login-screen classes after:', ls.className);
   loadCats();
   loadData();
   renderTable();
   cloudLoad().then(loaded=>{ if(loaded) renderTable(); });
   if(localStorage.getItem('hide_guide'))
     document.getElementById('sync-guide').style.display='none';
+  console.log('[Auth] enterApp() complete');
 }
 
 // Called on page load
@@ -852,37 +857,44 @@ function initApp(){
 
 // Called when user clicks Google Sign-In button
 async function signIn(){
+  console.log('[Auth] signIn() called');
   try{
     const tc = google.accounts.oauth2.initTokenClient({
       client_id: GDRIVE_CLIENT_ID,
       scope: 'email profile https://www.googleapis.com/auth/drive.file',
       callback: async (resp) => {
-        if(resp.error){ console.error('Token error:', resp); showLogin(); return; }
+        console.log('[Auth] token callback, error:', resp.error);
+        if(resp.error){ console.error('[Auth] Token error:', resp); showLogin(); return; }
         _accessToken = resp.access_token;
+        console.log('[Auth] got access token, fetching userinfo...');
         try{
           const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
             {headers:{Authorization:'Bearer '+resp.access_token}});
           const info = await r.json();
-          console.log('Signed in as:', info.email);
+          console.log('[Auth] userinfo:', info.email, '| allowed:', ALLOWED_EMAIL);
+          console.log('[Auth] match:', info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase());
           if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase()){
             _authUser = info;
             localStorage.setItem('motix_auth', JSON.stringify(
               {email:info.email, name:info.name||'', ts:Date.now()}
             ));
+            console.log('[Auth] saved to localStorage, calling enterApp()...');
             enterApp();
+            console.log('[Auth] enterApp() done');
           } else {
+            console.warn('[Auth] email mismatch');
             _accessToken = null;
             document.getElementById('login-err').classList.add('show');
           }
         } catch(fetchErr){
-          console.error('Userinfo fetch error:', fetchErr);
+          console.error('[Auth] Userinfo fetch error:', fetchErr);
           showLogin();
         }
       }
     });
     tc.requestAccessToken({prompt:''});
   } catch(gsiErr){
-    console.error('GSI error:', gsiErr);
+    console.error('[Auth] GSI error:', gsiErr);
     showLogin();
   }
 }
