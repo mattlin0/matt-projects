@@ -851,25 +851,7 @@ async function signIn(){
   tc.requestAccessToken({prompt:'select_account'});
 }
 
-function checkAuth(){
-  try{
-    const saved = localStorage.getItem('motix_auth');
-    if(saved){
-      const info = JSON.parse(saved);
-      if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase() && (Date.now()-info.ts)<30*24*60*60*1000){
-        _authUser = info;
-        // Refresh timestamp so 30 days resets on each use
-        localStorage.setItem('motix_auth', JSON.stringify({email:info.email, name:info.name, ts:Date.now()}));
-        _grantAndShow(_authNonce);
-        return;
-      } else {
-        // Expired - clear it
-        localStorage.removeItem('motix_auth');
-      }
-    }
-  } catch(e){}
-  document.getElementById('login-screen').classList.remove('hidden');
-}
+function checkAuth(){ initApp(); }
 
 // ── Google Drive backup ────────────────────────────
 const GDRIVE_CLIENT_ID = '83364575040-n7bqkadg2ejc583tmcg8omand48h2bb9.apps.googleusercontent.com';
@@ -1112,7 +1094,36 @@ function dSubDrop(e,pid,sid){
 
 // ── Init ───────────────────────────────────────────
 document.getElementById('datedisp').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
-checkAuth();
+
+// Wait for GSI to load before checking auth
+function initApp(){
+  const saved = localStorage.getItem('motix_auth');
+  if(saved){
+    try{
+      const info = JSON.parse(saved);
+      if(info.email && info.email.toLowerCase()===ALLOWED_EMAIL.toLowerCase() && (Date.now()-info.ts)<30*24*60*60*1000){
+        // Valid cache - skip Google login entirely, go straight to app
+        _authUser = info;
+        localStorage.setItem('motix_auth', JSON.stringify({email:info.email, name:info.name, ts:Date.now()}));
+        _authGranted = true;
+        document.getElementById('login-screen').classList.add('hidden');
+        loadCats();
+        loadData();
+        renderTable();
+        cloudLoad().then(loaded=>{ if(loaded) renderTable(); });
+        if(localStorage.getItem('hide_guide')) document.getElementById('sync-guide').style.display='none';
+        return;
+      } else {
+        localStorage.removeItem('motix_auth');
+      }
+    } catch(e){}
+  }
+  // No valid cache - show login
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// Run immediately - no need to wait for GSI for cached auth
+initApp();
 </script>
 </body>
 </html>
