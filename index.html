@@ -569,8 +569,9 @@ function rowHTML(r,col){
     <td style="display:table-cell!important"><div class="dh" title="拖拉調整優先順序">⠿</div></td>
     <td style="display:table-cell!important;padding:0;width:4px"><div class="cbar" style="background:${col}"></div></td>
     <td><div class="cell" style="gap:4px">
-      <button class="exp" onclick="toggleSubs(${r.id})">${r.open?'▾':'▸'}</button>
+      <button class="exp" onclick="toggleSubs(${r.id})" title="展開/收起子項目">${r.open?'▾':'▸'}</button>
       <input class="ci" value="${esc(r.name)}" oninput="sv(${r.id},'name',this.value)" style="font-weight:600" placeholder="專案名稱">
+      <button onclick="openAndAddSub(${r.id})" title="新增子項目" style="flex-shrink:0;width:18px;height:18px;border-radius:3px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;color:var(--text3);display:flex;align-items:center;justify-content:center;line-height:1">+</button>
     </div></td>
     <td style="padding:6px 9px"><select class="ssel s-${r.status}" onchange="svStatus(${r.id},this)">${statusOpts(r.status)}</select></td>
     <td><div class="cell"><input class="ci" type="date" value="${r.due&&r.due!=='—'?r.due:''}" onchange="sv(${r.id},'due',this.value||'—')" style="color:${dc};min-width:130px"></div></td>
@@ -674,6 +675,11 @@ function addSub(pid){
   const r=DATA.find(x=>x.id===pid);if(!r)return;
   r.subs.push({id:Date.now(),name:'新子項目',owner:'',status:'in-progress',pct:0,due:'',budget:'',next:'',risk:''});
   r.open=true;saveData();renderTable();
+}
+function openAndAddSub(pid){
+  const r=DATA.find(x=>x.id===pid);if(!r)return;
+  r.open=true;
+  addSub(pid);
 }
 async function delSub(pid,sid){
   if(!await confirmAsync('刪除此子項目？'))return;
